@@ -23,6 +23,7 @@ class ViewController: UIViewController {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         collectionView.backgroundColor = .darkGray
         collectionView.isPagingEnabled = true
+        collectionView.showsHorizontalScrollIndicator = false
         
         collectionView.dataSource = self
         collectionView.delegate = self
@@ -30,6 +31,15 @@ class ViewController: UIViewController {
         collectionView.register(CollectionViewCell.self, forCellWithReuseIdentifier: "\(CollectionViewCell.self)")
         
         return collectionView
+    }()
+    
+    private lazy var pageControl: UIPageControl = {
+        let pageControl = UIPageControl()
+        pageControl.translatesAutoresizingMaskIntoConstraints = false
+        pageControl.numberOfPages = viewModel.numberOfItems() - 2
+        pageControl.isEnabled = false
+        
+        return pageControl
     }()
 
     override func viewDidLoad() {
@@ -41,19 +51,22 @@ class ViewController: UIViewController {
     private func initViews() {
         
         view.addSubview(collectionView)
+        view.addSubview(pageControl)
         
         NSLayoutConstraint.activate([
             collectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
             collectionView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
-            collectionView.heightAnchor.constraint(equalToConstant: 200)
+            collectionView.heightAnchor.constraint(equalToConstant: 200),
+            
+            pageControl.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            pageControl.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: 0)
         ])
     }
 }
 
 extension ViewController: UICollectionViewDataSource {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        print("numberOfItems: \(viewModel.numberOfItems())")
         return viewModel.numberOfItems()
     }
     
@@ -107,5 +120,9 @@ extension ViewController: UICollectionViewDelegate {
         } else if viewModel.displayIndex == lastIndex {
             collectionView.scrollToItem(at: IndexPath(item: 1, section: 0), at: .centeredHorizontally, animated: false)
         }
+        
+        viewModel.displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
+        
+        pageControl.currentPage = viewModel.displayIndex - 1
     }
 }
