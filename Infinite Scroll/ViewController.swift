@@ -8,12 +8,104 @@
 import UIKit
 
 class ViewController: UIViewController {
+    
+    private lazy var viewModel: ViewControllerViewModel = {
+        let viewModel = ViewControllerViewModel()
+        
+        return viewModel
+    }()
+    
+    private lazy var collectionView: UICollectionView = {
+        var layout = UICollectionViewFlowLayout()
+        layout.scrollDirection = .horizontal
+        
+        let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        collectionView.translatesAutoresizingMaskIntoConstraints = false
+        collectionView.backgroundColor = .darkGray
+        collectionView.isPagingEnabled = true
+        
+        collectionView.dataSource = self
+        collectionView.delegate = self
+        
+        collectionView.register(CollectionViewCell.self, forCellWithReuseIdentifier: "\(CollectionViewCell.self)")
+        
+        return collectionView
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        
+        initViews()
     }
 
-
+    private func initViews() {
+        
+        view.addSubview(collectionView)
+        
+        NSLayoutConstraint.activate([
+            collectionView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
+            collectionView.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor),
+            collectionView.centerYAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerYAnchor),
+            collectionView.heightAnchor.constraint(equalToConstant: 200)
+        ])
+    }
 }
 
+extension ViewController: UICollectionViewDataSource {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        print("numberOfItems: \(viewModel.numberOfItems())")
+        return viewModel.numberOfItems()
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "\(CollectionViewCell.self)", for: indexPath) as? CollectionViewCell else {
+            return UICollectionViewCell()
+        }
+        
+        cell.contentView.backgroundColor = viewModel.getColor(indexPath: indexPath)
+        cell.text = "\(indexPath.item)"
+        
+        return cell
+    }
+}
+
+extension ViewController: UICollectionViewDelegateFlowLayout {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
+        CGSize(width: view.frame.width - 20, height: 150)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumLineSpacingForSectionAt section: Int) -> CGFloat {
+        20
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
+        10
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, insetForSectionAt section: Int) -> UIEdgeInsets {
+        UIEdgeInsets(top: 0, left: 10, bottom: 0, right: 10)
+    }
+}
+
+extension ViewController: UICollectionViewDelegate {
+    func collectionView(_ collectionView: UICollectionView, willDisplay cell: UICollectionViewCell, forItemAt indexPath: IndexPath) {
+        
+        if viewModel.isFirst {
+            collectionView.scrollToItem(at: IndexPath(item: viewModel.displayIndex, section: 0), at: .centeredHorizontally, animated: false)
+            viewModel.isFirst = false
+        }
+    }
+    
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        
+        let lastIndex = viewModel.numberOfItems() - 1
+        viewModel.displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
+        
+        if viewModel.displayIndex == 0 {
+            collectionView.scrollToItem(at: IndexPath(item: lastIndex - 1, section: 0), at: .centeredHorizontally, animated: false)
+            
+        } else if viewModel.displayIndex == lastIndex {
+            collectionView.scrollToItem(at: IndexPath(item: 1, section: 0), at: .centeredHorizontally, animated: false)
+        }
+    }
+}
