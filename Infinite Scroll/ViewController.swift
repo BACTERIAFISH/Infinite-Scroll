@@ -41,11 +41,25 @@ class ViewController: UIViewController {
         
         return pageControl
     }()
+    
+    private var timer: Timer?
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
         initViews()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        startTimer()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        timer?.invalidate()
     }
 
     private func initViews() {
@@ -62,6 +76,33 @@ class ViewController: UIViewController {
             pageControl.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
             pageControl.bottomAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: 0)
         ])
+    }
+    
+    private func adjustDisplayIndex(oldIndex: Int) {
+        let lastIndex = viewModel.numberOfItems() - 1
+        var newIndex = oldIndex
+        
+        if oldIndex == 0 {
+            newIndex = lastIndex - 1
+            collectionView.scrollToItem(at: IndexPath(item: newIndex, section: 0), at: .centeredHorizontally, animated: false)
+            
+        } else if oldIndex == lastIndex {
+            newIndex = 1
+            collectionView.scrollToItem(at: IndexPath(item: newIndex, section: 0), at: .centeredHorizontally, animated: false)
+        }
+        
+        viewModel.displayIndex = newIndex
+        pageControl.currentPage = newIndex - 1
+    }
+    
+    private func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(fireTimer(_:)), userInfo: nil, repeats: true)
+    }
+    
+    @objc private func fireTimer(_ timer: Timer) {
+        let nextIndex = viewModel.displayIndex + 1
+        collectionView.scrollToItem(at: IndexPath(item: nextIndex, section: 0), at: .centeredHorizontally, animated: true)
     }
 }
 
@@ -109,20 +150,18 @@ extension ViewController: UICollectionViewDelegate {
         }
     }
     
+    func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+        timer?.invalidate()
+    }
+    
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
-        
-        let lastIndex = viewModel.numberOfItems() - 1
-        viewModel.displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
-        
-        if viewModel.displayIndex == 0 {
-            collectionView.scrollToItem(at: IndexPath(item: lastIndex - 1, section: 0), at: .centeredHorizontally, animated: false)
-            
-        } else if viewModel.displayIndex == lastIndex {
-            collectionView.scrollToItem(at: IndexPath(item: 1, section: 0), at: .centeredHorizontally, animated: false)
-        }
-        
-        viewModel.displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
-        
-        pageControl.currentPage = viewModel.displayIndex - 1
+        let displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
+        adjustDisplayIndex(oldIndex: displayIndex)
+        startTimer()
+    }
+    
+    func scrollViewDidEndScrollingAnimation(_ scrollView: UIScrollView) {
+        let displayIndex = Int(scrollView.contentOffset.x / view.frame.width)
+        adjustDisplayIndex(oldIndex: displayIndex)
     }
 }

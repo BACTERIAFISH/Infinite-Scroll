@@ -36,4 +36,12 @@ class ViewControllerViewModel {
         
         return colors[indexPath.item]
     }
+    
+//    func nextAutoDisplayIndex() -> Int {
+//        if displayIndex == numberOfItems() - 2 {
+//            return 1
+//        }
+//        
+//        return displayIndex + 1
+//    }
 }
